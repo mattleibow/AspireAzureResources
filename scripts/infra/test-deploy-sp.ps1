@@ -245,24 +245,32 @@ Write-Host ""
 if ($ErrorCount -eq 0) {
     Write-Host "✅ All $TestCount tests passed! Service Principal is ready for deployment." -ForegroundColor Green
     Write-Host ""
-    Write-Host "🔐 GitHub Repository Secrets" -ForegroundColor Yellow
+    Write-Host "🔐 GitHub Repository Variables" -ForegroundColor Yellow
     Write-Host "═══════════════════════════════" -ForegroundColor Yellow
-    Write-Host "Add these values to your GitHub repository secrets:" -ForegroundColor White
+    Write-Host "Add these values to your GitHub repository variables:" -ForegroundColor White
+    Write-Host "(Settings → Secrets and variables → Actions → Variables tab)" -ForegroundColor White
     Write-Host ""
-    Write-Host "Secret Name: AZURE_DEPLOY_APP_ID" -ForegroundColor Cyan
+    Write-Host "Variable Name: AZURE_CLIENT_ID" -ForegroundColor Cyan
     Write-Host "Value: $AppId" -ForegroundColor White
     Write-Host ""
-    Write-Host "Secret Name: AZURE_TENANT_ID" -ForegroundColor Cyan  
+    Write-Host "Variable Name: AZURE_TENANT_ID" -ForegroundColor Cyan  
     Write-Host "Value: $TenantId" -ForegroundColor White
     Write-Host ""
-    Write-Host "Secret Name: AZURE_SUBSCRIPTION_ID" -ForegroundColor Cyan
+    Write-Host "Variable Name: AZURE_SUBSCRIPTION_ID" -ForegroundColor Cyan
     Write-Host "Value: $SubscriptionId" -ForegroundColor White
     Write-Host ""
+    Write-Host "Variable Name: AZURE_ENV_NAME" -ForegroundColor Cyan
+    Write-Host "Value: [Choose your environment name, e.g., 'dev', 'staging', 'prod']" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Variable Name: AZURE_LOCATION" -ForegroundColor Cyan
+    Write-Host "Value: [Your Azure region, e.g., 'eastus', 'westus2']" -ForegroundColor White
+    Write-Host ""
     Write-Host "📝 Next Steps:" -ForegroundColor Yellow
-    Write-Host "  1. Add the above secrets to your GitHub repository"
-    Write-Host "     (Settings → Secrets and variables → Actions)"
-    Write-Host "  2. Use the OIDC login action in your GitHub workflow"
-    Write-Host "  3. Deploy your infrastructure with confidence! 🚀"
+    Write-Host "  1. Add the above variables to your GitHub repository"
+    Write-Host "     (Settings → Secrets and variables → Actions → Variables tab)"
+    Write-Host "  2. Set AZURE_ENV_NAME to your preferred environment name (e.g., 'dev')"
+    Write-Host "  3. Your GitHub Actions workflow will use these variables for azd deployment"
+    Write-Host "  4. Deploy your infrastructure with confidence! 🚀"
     Write-Host ""
 } else {
     Write-Host "❌ $ErrorCount out of $TestCount tests failed." -ForegroundColor Red
