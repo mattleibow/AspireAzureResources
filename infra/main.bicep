@@ -23,6 +23,7 @@ module resources 'resources.bicep' = {
     location: location
     tags: tags
     principalId: principalId
+    environmentName: environmentName
   }
 }
 

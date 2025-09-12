@@ -3,6 +3,10 @@ param location string = resourceGroup().location
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
+@minLength(1)
+@maxLength(64)
+@description('Name of the environment that can be used')
+param environmentName string
 
 @description('Tags that will be applied to all resources')
 param tags object = {}
