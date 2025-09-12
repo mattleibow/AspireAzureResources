@@ -138,26 +138,53 @@ try {
 }
 Write-Host ""
 
-# Test 5: Check role assignments at resource group scope
-Write-Host "🔑 TEST 5: Permission Verification" -ForegroundColor Magenta
-Write-Host "──────────────────────────────────" -ForegroundColor Magenta
+# Test 5: Check role assignments at subscription scope (azd standard)
+Write-Host "🔑 TEST 5: Permission Verification (AZD Standard)" -ForegroundColor Magenta
+Write-Host "─────────────────────────────────────────────────" -ForegroundColor Magenta
 $TestCount++
-$scope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName"
+$subscriptionScope = "/subscriptions/$SubscriptionId"
+
 try {
-    $roles = az role assignment list --assignee $AppId --scope $scope -o json | ConvertFrom-Json
+    $roles = az role assignment list --assignee $AppId --scope $subscriptionScope -o json | ConvertFrom-Json
     if ($roles -and $roles.Count -gt 0) {
-        Write-Host "   ✅ Found $($roles.Count) role assignment(s) at resource group scope" -ForegroundColor Green
+        Write-Host "   ✅ Found $($roles.Count) subscription-level role assignment(s)" -ForegroundColor Green
+        
+        $contributorFound = $false
+        $uaaFound = $false
+        
         foreach ($role in $roles) {
             Write-Host "      🛡️  Role: $($role.roleDefinitionName)" -ForegroundColor Green
             Write-Host "         📍 Scope: $($role.scope)" -ForegroundColor DarkGray
-            Write-Host "         👤 Principal: $($role.principalName)" -ForegroundColor DarkGray
+            
+            if ($role.roleDefinitionName -eq "Contributor") {
+                $contributorFound = $true
+                Write-Host "         ✅ Contributor role found (for resource management)" -ForegroundColor Green
+            }
+            if ($role.roleDefinitionName -eq "User Access Administrator") {
+                $uaaFound = $true
+                Write-Host "         ✅ User Access Administrator role found (for role management)" -ForegroundColor Green
+            }
         }
+        
+        if (-not $contributorFound) {
+            Write-Host "      ❌ Contributor role missing (required for azd deployment)" -ForegroundColor Red
+            $ErrorCount++
+        }
+        if (-not $uaaFound) {
+            Write-Host "      ❌ User Access Administrator role missing (required for azd)" -ForegroundColor Red
+            $ErrorCount++
+        }
+        
+        if ($contributorFound -and $uaaFound) {
+            Write-Host "      ✅ All required azd roles are present!" -ForegroundColor Green
+        }
+        
     } else {
-        Write-Host "   ❌ No role assignments found at resource group scope" -ForegroundColor Red
+        Write-Host "   ❌ No subscription-level role assignments found (required for azd)" -ForegroundColor Red
         $ErrorCount++
     }
 } catch {
-    Write-Host "   ❌ Failed to check role assignments" -ForegroundColor Red
+    Write-Host "   ❌ Failed to check subscription-level role assignments" -ForegroundColor Red
     $ErrorCount++
 }
 Write-Host ""
