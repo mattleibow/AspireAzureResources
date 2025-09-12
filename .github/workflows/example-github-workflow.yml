@@ -1,0 +1,62 @@
+# Example GitHub Actions workflow using the federated Service Principal
+# Save this as .github/workflows/deploy.yml
+
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
+env:
+  AZURE_RESOURCE_GROUP: rg-aspire-dev  # Must match what you used in create-deploy-sp.ps1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure login (OIDC - no secrets!)
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_DEPLOY_APP_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Verify Azure connection
+      run: |
+        echo "Logged in as:"
+        az account show --query "user.name" -o tsv
+        echo "Target resource group: $AZURE_RESOURCE_GROUP"
+        az group show --name $AZURE_RESOURCE_GROUP --query "name" -o tsv
+
+    # Example: Deploy Bicep template (adjust path as needed)
+    - name: Deploy infrastructure
+      run: |
+        az deployment group create \
+          --resource-group $AZURE_RESOURCE_GROUP \
+          --template-file infra/main.bicep \
+          --parameters @infra/main.parameters.json
+
+    # Example: Deploy Aspire app (if using azd)
+    - name: Install azd
+      uses: Azure/setup-azd@v1.0.0
+
+    - name: Deploy application
+      run: |
+        azd auth login --client-id ${{ secrets.AZURE_DEPLOY_APP_ID }} \
+                       --federated-credential-provider "github" \
+                       --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+        azd deploy
+      env:
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_ENV_NAME: dev  # or your azd environment name
