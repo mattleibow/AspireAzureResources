@@ -26,7 +26,8 @@ param(
     [Parameter(Mandatory=$false)] [string]$ResourceGroupLocation,
     [Parameter(Mandatory=$true)] [string]$GithubRepo,
     [ValidateSet("branch","environment","tags")] [string]$SubjectMode = "branch",
-    [string]$SubjectValue = "main"
+    [string]$SubjectValue = "main",
+    [string]$Role = "Contributor"
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,7 +39,7 @@ $Subject = switch ($SubjectMode) {
 }
 $Issuer = "https://token.actions.githubusercontent.com"
 $Audience = "api://AzureADTokenExchange"
-$SubscriptionScope = "/subscriptions/$SubscriptionId"
+$Scope = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName"
 
 # Get current Azure CLI context
 try {
@@ -84,7 +85,7 @@ Write-Host "  • Resource Group: $ResourceGroupName"
 Write-Host "  • Resource Group Location: $ResourceGroupLocation"
 Write-Host "  • GitHub Repository: $GithubRepo"
 Write-Host "  • Subject: $Subject"
-Write-Host "  • Roles: Contributor + User Access Administrator (azd standard)"
+Write-Host "  • Role: $Role"
 Write-Host ""
 
 
@@ -214,32 +215,19 @@ Write-Host "   📋 Issuer: $Issuer"
 Write-Host ""
 
 
-# Role Assignment - AZD Standard Approach
-Write-Host "🔑 STEP 6: Assigning Deployment Permissions (AZD Standard)" -ForegroundColor Magenta
-Write-Host "─────────────────────────────────────────────────────────" -ForegroundColor Magenta
-
-# Assign Contributor role at subscription level (for resource management)
-Write-Host "   🛡️  Assigning 'Contributor' role at subscription level..."
-$contributorExists = az role assignment list --assignee $appId --scope $SubscriptionScope --role "Contributor" --query "[0]" -o json | ConvertFrom-Json
-if (-not $contributorExists) {
-    az role assignment create --assignee $appId --role "Contributor" --scope $SubscriptionScope | Out-Null
-    Write-Host "   ✅ Contributor role assignment completed successfully" -ForegroundColor Green
+# Role Assignment
+Write-Host "🔑 STEP 6: Assigning Deployment Permissions" -ForegroundColor Magenta
+Write-Host "───────────────────────────────────────────" -ForegroundColor Magenta
+$exists = az role assignment list --assignee $appId --scope $Scope --role $Role --query "[0]" -o json | ConvertFrom-Json
+if (-not $exists) {
+    Write-Host "   🛡️  Assigning '$Role' role to service principal..."
+    az role assignment create --assignee $appId --role $Role --scope $Scope | Out-Null
+    Write-Host "   ✅ Role assignment completed successfully" -ForegroundColor Green
 } else {
-    Write-Host "   ✅ Contributor role already assigned" -ForegroundColor Green
+    Write-Host "   ✅ Role '$Role' already assigned" -ForegroundColor Green
 }
-
-# Assign User Access Administrator role at subscription level (for role management)
-Write-Host "   🛡️  Assigning 'User Access Administrator' role at subscription level..."
-$uaaExists = az role assignment list --assignee $appId --scope $SubscriptionScope --role "User Access Administrator" --query "[0]" -o json | ConvertFrom-Json
-if (-not $uaaExists) {
-    az role assignment create --assignee $appId --role "User Access Administrator" --scope $SubscriptionScope | Out-Null
-    Write-Host "   ✅ User Access Administrator role assignment completed successfully" -ForegroundColor Green
-} else {
-    Write-Host "   ✅ User Access Administrator role already assigned" -ForegroundColor Green
-}
-
-Write-Host "   📋 Scope: Subscription ($SubscriptionScope)"
-Write-Host "   📋 Roles: Contributor + User Access Administrator (azd standard)"
+Write-Host "   📋 Scope: Resource Group '$ResourceGroupName'"
+Write-Host "   📋 Role: $Role"
 Write-Host ""
 
 
@@ -253,8 +241,7 @@ Write-Host "  ✅ Resource Group: $ResourceGroupName (in $actualLocation)"
 Write-Host "  ✅ Entra ID App: $DisplayName"
 Write-Host "  ✅ Service Principal: $spObjectId"
 Write-Host "  ✅ Federated Credential: GitHub OIDC configured"
-Write-Host "  ✅ Role Assignment: Contributor on Subscription (for azd deployment)"
-Write-Host "  ✅ Role Assignment: User Access Administrator on Subscription (for azd)"
+Write-Host "  ✅ Role Assignment: $Role on Resource Group"
 Write-Host ""
 
 Write-Host "🔐 GitHub Repository Variables" -ForegroundColor Yellow
@@ -292,17 +279,17 @@ Write-Host ""
 
 # Technical output for automation/logging
 $result = [pscustomobject]@{
-    displayName        = $DisplayName
-    appId              = $appId
-    servicePrincipal   = $spObjectId
-    tenantId           = $TenantId
-    subscriptionId     = $SubscriptionId
-    resourceGroup      = $ResourceGroupName
-    location           = $actualLocation
-    subscriptionScope  = $SubscriptionScope
-    githubSubject      = $Subject
-    issuer             = $Issuer
-    audience           = $Audience
+    displayName      = $DisplayName
+    appId            = $appId
+    servicePrincipal = $spObjectId
+    tenantId         = $TenantId
+    subscriptionId   = $SubscriptionId
+    resourceGroup    = $ResourceGroupName
+    location         = $actualLocation
+    scope            = $Scope
+    githubSubject    = $Subject
+    issuer           = $Issuer
+    audience         = $Audience
 }
 
 Write-Host "📋 Technical Details (JSON):" -ForegroundColor DarkGray
