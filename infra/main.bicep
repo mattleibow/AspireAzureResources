@@ -27,6 +27,22 @@ module resources 'resources.bicep' = {
   }
 }
 
+module key_vault 'key-vault/key-vault.module.bicep' = {
+  name: 'key-vault'
+  params: {
+    location: location
+  }
+}
+module key_vault_roles 'key-vault-roles/key-vault-roles.module.bicep' = {
+  name: 'key-vault-roles'
+  params: {
+    key_vault_outputs_name: key_vault.outputs.name
+    location: location
+    principalId: resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
+    principalType: 'ServicePrincipal'
+  }
+}
 
 output MANAGED_IDENTITY_CLIENT_ID string = resources.outputs.MANAGED_IDENTITY_CLIENT_ID
 output MANAGED_IDENTITY_NAME string = resources.outputs.MANAGED_IDENTITY_NAME
+output KEY_VAULT_VAULTURI string = key_vault.outputs.vaultUri
